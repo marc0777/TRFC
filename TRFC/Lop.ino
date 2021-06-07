@@ -6,7 +6,7 @@ void redo() {
   
   checkBattery(); // Check for low battery
 
-  uint64_t usBetweenReadings = 1000000ULL; // every 1000 ms
+  uint64_t usBetweenReadings = 100000ULL; // every 1000 ms
   if ((micros() - lastReadTime) >= usBetweenReadings) takeReading = true;
 
   bool maxRate = false;

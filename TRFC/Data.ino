@@ -11,38 +11,39 @@ void getData() {
   char tempData[50];
   outputData[0] = '\0'; //Clear string contents
 
-  bool logRTC = true;
+  bool logRTC = false;
   if (logRTC) {
     char timeString[37];
     getTimeString(timeString); // getTimeString is in TimeStamp.ino
     strcat(outputData, timeString);
   }
 
-  bool logVIN = true;
+  bool logVIN = false;
   if (logVIN) {
     float voltage = readVIN();
     sprintf(tempData, "%.2f,", voltage);
     strcat(outputData, tempData);
   }
 
-  if (myICM.dataReady()) {
-    myICM.getAGMT(); //Update values
+  if (imu.dataReady()) {
+    imu.getAGMT(); //Update values
 
-    sprintf(tempData, "%.2f,%.2f,%.2f,", myICM.accX(), myICM.accY(), myICM.accZ());
+    sprintf(tempData, "%.2f,%.2f,%.2f,", imu.accX(), imu.accY(), imu.accZ());
     strcat(outputData, tempData);
 
-    sprintf(tempData, "%.2f,%.2f,%.2f,", myICM.gyrX(), myICM.gyrY(), myICM.gyrZ());
+    sprintf(tempData, "%.2f,%.2f,%.2f,", imu.gyrX(), imu.gyrY(), imu.gyrZ());
     strcat(outputData, tempData);
 
-    sprintf(tempData, "%.2f,%.2f,%.2f,", myICM.magX(), myICM.magY(), myICM.magZ());
+    sprintf(tempData, "%.2f,%.2f,%.2f,", imu.magX(), imu.magY(), imu.magZ());
     strcat(outputData, tempData);
 
-    sprintf(tempData, "%.2f,", myICM.temp());
+    imu.update();
+    sprintf(tempData, "%.2f,%.2f,%.2f,%.2f,", imu.q0, imu.q1, imu.q2, imu.q3);
+    strcat(outputData, tempData);
+
+    sprintf(tempData, "%.2f,", imu.temp());
     strcat(outputData, tempData);
   }
-
-  //Append all external sensor data on linked list to outputData
-  //gatherDeviceValues();
 
   bool logHertz = false;
   if (logHertz) {
