@@ -2,29 +2,35 @@ unsigned long lastReadTime = 0; //Used to delay until user wants to record a new
 unsigned long lastDataLogSyncTime = 0; //Used to record to SD every half second
 bool takeReading = true; //Goes true when enough time has passed between readings or we've woken from sleep
 
+int sendfreq = 10;
+int sentf = 0;
+
 void redo() {
-  
   checkBattery(); // Check for low battery
 
-  uint64_t usBetweenReadings = 100000ULL; // every 1000 ms
+  uint64_t hertz = 111;
+  uint64_t usBetweenReadings = 1000000ULL / hertz;
+
   if ((micros() - lastReadTime) >= usBetweenReadings) takeReading = true;
 
-  bool maxRate = false;
-
   //Is it time to get new data?
-  if (maxRate || takeReading) {
+  if (takeReading) {
     takeReading = false;
     lastReadTime = micros();
 
     getData(); //Query all enabled sensors for data
-
-    //Print to terminal
-    bool terminalOut = true;
-    if (terminalOut) SerialPrint(outputData); //Print to terminal
+    dataToStr();
 
     //Output to TX pin
-    bool serialOut = false;
-    if (serialOut) SerialLog.print(outputData); //Print to TX pin
+    bool serialOut = true;
+    if (serialOut && sentf >= sendfreq) {
+      SerialLog.print(outputData);
+    } else sentf++;
+
+    //Print to terminal
+    bool terminalOut = false;
+    if (terminalOut) SerialPrint(outputData); //Print to terminal
+
 
     //Record to SD
     bool sdOut = true;
@@ -37,6 +43,6 @@ void redo() {
         sensorDataFile.sync();
       }
       digitalWrite(PIN_STAT_LED, LOW);
-    } 
+    }
   }
 }

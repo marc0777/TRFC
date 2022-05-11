@@ -8,17 +8,23 @@
 #include "Pins.h"
 #include "IMU.h"
 
+uint64_t measurementStartTime; //Used to calc the actual update rate. Max is ~80,000,000ms in a 24 hour period.
+
 TwoWire qwiic(1); // I²C bus on the Qwiic port, connected to pads 8 and 9
 SdFat sd; // SD card interface, communicating via SPI
 SdFile sensorDataFile; //File that all sensor data is written to
 char sensorDataFileName[30] = ""; //We keep a record of this file name so that we can re-open it upon wakeup from sleep
 
 IMU imu;
-
+BME280 pres;
 APM3_RTC myRTC; // Integrated Artemis RTC
+
 Uart SerialLog(1, 13, 12); // TX/RX marked on board, couold be used to connect a wireless module
 
 char outputData[512 * 2]; // Global sensor data storage, factor of 512 for easier recording to SD in 512 chunks
+
+unsigned int readingTime;
+float sensors[13];
 
 /**
  * Turn on and off the integrated status LED
@@ -135,7 +141,7 @@ void setup() {
   String(0.0f); // just in case the arduino compiler is dumb
 
   Serial.begin(115200);
-  SerialLog.begin(115200);
+  SerialLog.begin(38400);
   SPI.begin(); //Needed if SD is disabled
   beginQwiic();
   beginSD();
@@ -144,9 +150,22 @@ void setup() {
   beginDataLogging();
   imu.begin();
 
+  pres.setI2CAddress(0x76);
+
+  if (pres.beginI2C(qwiic) == false) {
+    SerialPrintln(F("The sensor did not respond. Please check wiring."));
+    while(1); //Freeze
+  }
+
+  pres.setReferencePressure(102100.0); // set to correct value day of launch!!!
+
   setStatusLED(false); // Configuration ended, ready to go
+
+  measurementStartTime = millis();
 }
 
 void loop() {
   redo();
+  //printpres();
+  
 }

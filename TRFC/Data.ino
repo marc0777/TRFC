@@ -1,68 +1,55 @@
-uint64_t measurementStartTime; //Used to calc the actual update rate. Max is ~80,000,000ms in a 24 hour period.
-unsigned long measurementCount = 0; //Used to calc the actual update rate.
-unsigned long measurementTotal = 0; //The total number of recorded measurements. (Doesn't get reset when the menu is opened)
-unsigned int totalCharactersPrinted = 0; //Limit output rate based on baud rate and number of characters to print
-
 //Query each enabled sensor for its most recent data
 void getData() {
-  measurementCount++;
-  measurementTotal++;
+  readingTime = micros();
 
+  imu.update();
+  sensors[0] = imu.acc_x;
+  sensors[1] = imu.acc_y;
+  sensors[2] = imu.acc_z;
+
+  imu.update();
+  sensors[3] = imu.gyr_x;
+  sensors[4] = imu.gyr_y;
+  sensors[5] = imu.gyr_z;
+
+  imu.update();
+  sensors[6] = imu.q0;
+  sensors[7] = imu.q1;
+  sensors[8] = imu.q2;
+  sensors[9] = imu.q3;
+
+  sensors[10] = pres.readFloatPressure();
+  sensors[11] = pres.readFloatAltitudeMeters();
+  sensors[12] = pres.readTempC();
+}
+
+void dataToStr() {
   char tempData[50];
   outputData[0] = '\0'; //Clear string contents
 
-  bool logRTC = false;
-  if (logRTC) {
-    char timeString[37];
-    getTimeString(timeString); // getTimeString is in TimeStamp.ino
-    strcat(outputData, timeString);
-  }
+  sprintf(tempData, "%lu,", readingTime);
+  strcat(outputData, tempData);
 
-  bool logVIN = false;
-  if (logVIN) {
-    float voltage = readVIN();
-    sprintf(tempData, "%.2f,", voltage);
-    strcat(outputData, tempData);
-  }
+  imu.update();
+  sprintf(tempData, "%.2f,%.2f,%.2f,", sensors[0], sensors[1], sensors[2]);
+  strcat(outputData, tempData);
 
-  if (imu.dataReady()) {
-    imu.getAGMT(); //Update values
+  imu.update();
+  sprintf(tempData, "%.2f,%.2f,%.2f,", sensors[3], sensors[4], sensors[5]);
+  strcat(outputData, tempData);
 
-    sprintf(tempData, "%.2f,%.2f,%.2f,", imu.accX(), imu.accY(), imu.accZ());
-    strcat(outputData, tempData);
+  imu.update();
+  sprintf(tempData, "%.2f,%.2f,%.2f,%.2f,", sensors[6], sensors[7], sensors[8], sensors[9]);
+  strcat(outputData, tempData);
 
-    sprintf(tempData, "%.2f,%.2f,%.2f,", imu.gyrX(), imu.gyrY(), imu.gyrZ());
-    strcat(outputData, tempData);
-
-    sprintf(tempData, "%.2f,%.2f,%.2f,", imu.magX(), imu.magY(), imu.magZ());
-    strcat(outputData, tempData);
-
-    imu.update();
-    sprintf(tempData, "%.2f,%.2f,%.2f,%.2f,", imu.q0, imu.q1, imu.q2, imu.q3);
-    strcat(outputData, tempData);
-
-    sprintf(tempData, "%.2f,", imu.temp());
-    strcat(outputData, tempData);
-  }
-
-  bool logHertz = false;
-  if (logHertz) {
-    //Calculate the actual update rate based on the sketch start time and the
-    //number of updates we've completed.
-    uint64_t currentMillis = millis();
-
-    float actualRate = measurementCount * 1000.0 / (currentMillis - measurementStartTime);
-    sprintf(tempData, "%.02f,", actualRate); //Hz
-    strcat(outputData, tempData);
-  }
-
-  bool printMeasurementCount = false;
-  if (printMeasurementCount) {
-    sprintf(tempData, "%d,", measurementTotal);
-    strcat(outputData, tempData);
-  }
+  sprintf(tempData, "%.2f,", sensors[10]);
+  strcat(outputData, tempData);
+  
+  sprintf(tempData, "%.2f,", sensors[11]);
+  strcat(outputData, tempData);
+  
+  sprintf(tempData, "%.2f,", sensors[12]);
+  strcat(outputData, tempData);
 
   strcat(outputData, "\r\n");
-
-  totalCharactersPrinted += strlen(outputData);
 }

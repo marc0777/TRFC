@@ -11,23 +11,10 @@ public:
   void begin();
   bool check();
 
-  void getAGMT() {myICM.getAGMT();}
-  bool dataReady() {return myICM.dataReady();}
-
-  float accX() {return myICM.accX();}
-  float accY() {return myICM.accY();}
-  float accZ() {return myICM.accZ();}
-
-  float gyrX() {return myICM.gyrX();}
-  float gyrY() {return myICM.gyrY();}
-  float gyrZ() {return myICM.gyrZ();}
-
-  float magX() {return myICM.magX();}
-  float magY() {return myICM.magY();}
-  float magZ() {return myICM.magZ();}
-
   void update();
   double q0, q1, q2, q3;
+  float acc_x, acc_y, acc_z;
+  float gyr_x, gyr_y, gyr_z;
 
   float temp() {return myICM.temp();}
 
