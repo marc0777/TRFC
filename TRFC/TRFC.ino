@@ -19,7 +19,7 @@ IMU imu;
 BME280 pres;
 APM3_RTC myRTC; // Integrated Artemis RTC
 
-Uart SerialLog(1, 13, 12); // TX/RX marked on board, couold be used to connect a wireless module
+Uart SerialLog(1, BREAKOUT_PIN_RX, BREAKOUT_PIN_TX); // TX/RX marked on board, couold be used to connect a wireless module
 
 char outputData[512 * 2]; // Global sensor data storage, factor of 512 for easier recording to SD in 512 chunks
 
