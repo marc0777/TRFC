@@ -80,7 +80,6 @@ char* findNextAvailableLog(const char *fileLeader) {
   return (newFileName);
 }
 
-
 void setPowerLED(bool status) {
   pinMode(PIN_PWR_LED, OUTPUT);
   digitalWrite(PIN_PWR_LED, status); 
@@ -101,18 +100,6 @@ void setQwiicPower(bool status) {
   digitalWrite(PIN_QWIIC_POWER, status);
 }
 
-//Read the VIN voltage
-float readVIN() {
-  int div3 = analogRead(PIN_VIN_MONITOR); //Read VIN across a 1/3 resistor divider
-  float vin = (float)div3 * 3.0 * 2.0 / 16384.0; //Convert 1/3 VIN to VIN (14-bit resolution)
-  vin = vin * 1.47; //Correct for divider impedance (determined experimentally)
-  return (vin);
-}
-
-int lowBatteryReadings = 0; // Count how many times the battery voltage has read low
-const int lowBatteryReadingsLimit = 10; 
-const int sdPowerDownDelay = 100;
-
 /**
  * Turn on and off the integrated status LED
  * @param status true to turn on the LED
@@ -120,11 +107,6 @@ const int sdPowerDownDelay = 100;
 void setStatusLED(bool status) {
   pinMode(PIN_STAT_LED, OUTPUT);
   digitalWrite(PIN_STAT_LED, status);
-}
-
-void error() {
-  setStatusLED(true);
-  while(1); 
 }
 
 /**
