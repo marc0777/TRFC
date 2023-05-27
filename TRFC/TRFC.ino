@@ -26,6 +26,93 @@ char outputData[512 * 2]; // Global sensor data storage, factor of 512 for easie
 unsigned int readingTime;
 float sensors[13];
 
+//Returns next available log file name
+//Checks the spots in EEPROM for the next available LOG# file name
+//Updates EEPROM and then appends to the new log file.
+char* findNextAvailableLog(const char *fileLeader) {
+  int newFileNumber = 1;
+
+  SdFile newFile; //This will contain the file for SD writing
+
+  if (newFileNumber < 2) //If the settings have been reset, let's warn the user that this could take a while!
+  {
+    Serial.println("Finding the next available log file.");
+    Serial.println("This could take a long time if the SD card contains many existing log files.");
+  }
+
+  if (newFileNumber > 0)
+    newFileNumber--; //Check if last log file was empty. Reuse it if it is.
+
+  //Search for next available log spot
+  static char newFileName[40];
+  while (1)
+  {
+    sprintf(newFileName, "%s%05u.TXT", fileLeader, newFileNumber); //Splice the new file number into this file name. Max no. is 99999.
+
+    if (sd.exists(newFileName) == false) break; //File name not found so we will use it.
+
+    //File exists so open and see if it is empty. If so, use it.
+    newFile.open(newFileName, O_READ);
+    if (newFile.fileSize() == 0) break; // File is empty so we will use it. Note: we need to make the user aware that this can happen!
+
+    newFile.close(); // Close this existing file we just opened.
+
+    newFileNumber++; //Try the next number
+    if (newFileNumber >= 100000) break; // Have we hit the maximum number of files?
+  }
+  
+  newFile.close(); //Close this new file we just opened
+
+  newFileNumber++; //Increment so the next power up uses the next file #
+
+  // Have we hit the maximum number of files?
+  if (newFileNumber >= 100000) {
+    Serial.print("***** WARNING! File number limit reached! (Overwriting ");
+    Serial.print(newFileName);
+    Serial.println(") *****");
+    newFileNumber = 100000; // This will overwrite Log99999.TXT next time thanks to the newFileNumber-- above
+  }
+  else {
+    Serial.print("Logging to: ");
+    Serial.println(newFileName);    
+  }
+
+  return (newFileName);
+}
+
+
+void setPowerLED(bool status) {
+  pinMode(PIN_PWR_LED, OUTPUT);
+  digitalWrite(PIN_PWR_LED, status); 
+}
+
+void setMicroSDPower(bool status) {
+  pinMode(PIN_MICROSD_POWER, OUTPUT);
+  digitalWrite(PIN_MICROSD_POWER, !status);
+}
+
+void setIMUPower(bool status) {
+  pinMode(PIN_IMU_POWER, OUTPUT);
+  digitalWrite(PIN_IMU_POWER, status);
+}
+
+void setQwiicPower(bool status) {
+  pinMode(PIN_QWIIC_POWER, OUTPUT);
+  digitalWrite(PIN_QWIIC_POWER, status);
+}
+
+//Read the VIN voltage
+float readVIN() {
+  int div3 = analogRead(PIN_VIN_MONITOR); //Read VIN across a 1/3 resistor divider
+  float vin = (float)div3 * 3.0 * 2.0 / 16384.0; //Convert 1/3 VIN to VIN (14-bit resolution)
+  vin = vin * 1.47; //Correct for divider impedance (determined experimentally)
+  return (vin);
+}
+
+int lowBatteryReadings = 0; // Count how many times the battery voltage has read low
+const int lowBatteryReadingsLimit = 10; 
+const int sdPowerDownDelay = 100;
+
 /**
  * Turn on and off the integrated status LED
  * @param status true to turn on the LED
@@ -37,7 +124,7 @@ void setStatusLED(bool status) {
 
 void error() {
   setStatusLED(true);
-  while(1) checkBattery(); 
+  while(1); 
 }
 
 /**
@@ -64,17 +151,17 @@ bool beginSD() {
   setMicroSDPower(true);
 
   // Max power up time for a standard micro SD is 250ms
-  smartDelay(10);
+  delay(10);
     
   //Standard SdFat initialization
   if (!sd.begin(PIN_MICROSD_CHIP_SELECT, SD_SCK_MHZ(24))) { 
 
     //Give SD more time to power up, then try again
-    smartDelay(250);
+    delay(250);
 
     // Trying again standard SdFat initialization
     if (!sd.begin(PIN_MICROSD_CHIP_SELECT, SD_SCK_MHZ(24))) {
-      SerialPrintln(F("SD init failed (second attempt). Is card present? Formatted?"));
+      Serial.println("SD init failed (second attempt). Is card present? Formatted?");
       digitalWrite(PIN_MICROSD_CHIP_SELECT, HIGH); //Be sure SD is deselected
       success = false;
     }
@@ -83,7 +170,7 @@ bool beginSD() {
   // Change to root directory. All new file creation will be in root
   // checking success to only execute chdir if no error occurred so far
   if (success && !sd.chdir()) {
-    SerialPrintln(F("SD change directory failed"));
+    Serial.println("SD change directory failed");
     success = false;
   }
 
@@ -121,7 +208,7 @@ void beginDataLogging() {
     // O_APPEND - seek to the end of the file prior to each write
     // O_WRITE - open for write
     if (sensorDataFile.open(sensorDataFileName, O_CREAT | O_APPEND | O_WRITE) == false) {
-      SerialPrintln(F("Failed to create sensor data file"));
+      Serial.println("Failed to create sensor data file");
       return;
     }
 
@@ -129,12 +216,6 @@ void beginDataLogging() {
 }
 
 void setup() {
-  // Initializes low power detection
-  pinMode(PIN_POWER_LOSS, INPUT); // BD49K30G-TL has CMOS output and does not need a pull-up
-  delay(1); // Let PIN_POWER_LOSS stabilize
-  if (digitalRead(PIN_POWER_LOSS) == LOW) powerDown(); //Check PIN_POWER_LOSS just in case we missed the falling edge
-  attachInterrupt(digitalPinToInterrupt(PIN_POWER_LOSS), powerDown, FALLING);
-
   setPowerLED(true); // We're up!
   setStatusLED(true); // Starting configuration
 
@@ -153,7 +234,7 @@ void setup() {
   pres.setI2CAddress(0x76);
 
   if (pres.beginI2C(qwiic) == false) {
-    SerialPrintln(F("The sensor did not respond. Please check wiring."));
+    Serial.println("The sensor did not respond. Please check wiring.");
     while(1); //Freeze
   }
 
@@ -164,8 +245,105 @@ void setup() {
   measurementStartTime = millis();
 }
 
-void loop() {
-  redo();
-  //printpres();
+//Query each enabled sensor for its most recent data
+void getData() {
+  readingTime = micros();
+
+  imu.update();
+  sensors[0] = imu.acc_x;
+  sensors[1] = imu.acc_y;
+  sensors[2] = imu.acc_z;
+
+  imu.update();
+  sensors[3] = imu.gyr_x;
+  sensors[4] = imu.gyr_y;
+  sensors[5] = imu.gyr_z;
+
+  imu.update();
+  sensors[6] = imu.q0;
+  sensors[7] = imu.q1;
+  sensors[8] = imu.q2;
+  sensors[9] = imu.q3;
+
+  sensors[10] = pres.readFloatPressure();
+  sensors[11] = pres.readFloatAltitudeMeters();
+  sensors[12] = pres.readTempC();
+}
+
+void dataToStr() {
+  char tempData[50];
+  outputData[0] = '\0'; //Clear string contents
+
+  sprintf(tempData, "%lu,", readingTime);
+  strcat(outputData, tempData);
+
+  imu.update();
+  sprintf(tempData, "%.2f,%.2f,%.2f,", sensors[0], sensors[1], sensors[2]);
+  strcat(outputData, tempData);
+
+  imu.update();
+  sprintf(tempData, "%.2f,%.2f,%.2f,", sensors[3], sensors[4], sensors[5]);
+  strcat(outputData, tempData);
+
+  imu.update();
+  sprintf(tempData, "%.2f,%.2f,%.2f,%.2f,", sensors[6], sensors[7], sensors[8], sensors[9]);
+  strcat(outputData, tempData);
+
+  sprintf(tempData, "%.2f,", sensors[10]);
+  strcat(outputData, tempData);
   
+  sprintf(tempData, "%.2f,", sensors[11]);
+  strcat(outputData, tempData);
+  
+  sprintf(tempData, "%.2f,", sensors[12]);
+  strcat(outputData, tempData);
+
+  strcat(outputData, "\r\n");
+}
+
+unsigned long lastReadTime = 0; //Used to delay until user wants to record a new reading
+unsigned long lastDataLogSyncTime = 0; //Used to record to SD every half second
+bool takeReading = true; //Goes true when enough time has passed between readings or we've woken from sleep
+
+int sendfreq = 10;
+int sentf = 0;
+
+void loop() {
+  uint64_t hertz = 111;
+  uint64_t usBetweenReadings = 1000000ULL / hertz;
+
+  if ((micros() - lastReadTime) >= usBetweenReadings) takeReading = true;
+
+  //Is it time to get new data?
+  if (takeReading) {
+    takeReading = false;
+    lastReadTime = micros();
+
+    getData(); //Query all enabled sensors for data
+    dataToStr();
+
+    //Output to TX pin
+    bool serialOut = true;
+    if (serialOut && sentf >= sendfreq) {
+      SerialLog.print(outputData);
+    } else sentf++;
+
+    //Print to terminal
+    bool terminalOut = false;
+    if (terminalOut) Serial.print(outputData); //Print to terminal
+
+
+    //Record to SD
+    bool sdOut = true;
+    if (sdOut) {
+      digitalWrite(PIN_STAT_LED, HIGH);
+      sensorDataFile.write(outputData, strlen(outputData)); //Record the buffer to the card
+      //Force sync every 500ms
+      if (millis() - lastDataLogSyncTime > 500) {
+        lastDataLogSyncTime = millis();
+        sensorDataFile.sync();
+      }
+      digitalWrite(PIN_STAT_LED, LOW);
+    }
+  }
 }
