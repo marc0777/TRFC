@@ -132,7 +132,6 @@ void IMU::update() {
       q1 = ((double)data.Quat9.Data.Q1) / 1073741824.0; // Convert to double. Divide by 2^30
       q2 = ((double)data.Quat9.Data.Q2) / 1073741824.0; // Convert to double. Divide by 2^30
       q3 = ((double)data.Quat9.Data.Q3) / 1073741824.0; // Convert to double. Divide by 2^30
-      q0 = sqrt(1.0 - ((q1 * q1) + (q2 * q2) + (q3 * q3)));
     }
 
     if ((data.header & DMP_header_bitmap_Accel) > 0) {

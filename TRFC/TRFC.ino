@@ -242,14 +242,13 @@ void getData() {
   sensors[5] = imu.gyr_z;
 
   imu.update();
-  sensors[6] = imu.q0;
-  sensors[7] = imu.q1;
-  sensors[8] = imu.q2;
-  sensors[9] = imu.q3;
+  sensors[6] = imu.q1;
+  sensors[7] = imu.q2;
+  sensors[8] = imu.q3;
 
-  sensors[10] = pres.readFloatPressure();
-  sensors[11] = pres.readFloatAltitudeMeters();
-  sensors[12] = pres.readTempC();
+  sensors[9] = pres.readFloatPressure();
+  sensors[10] = pres.readFloatAltitudeMeters();
+  sensors[11] = pres.readTempC();
 }
 
 void dataToStr() {
@@ -268,16 +267,16 @@ void dataToStr() {
   strcat(outputData, tempData);
 
   imu.update();
-  sprintf(tempData, "%.2f,%.2f,%.2f,%.2f,", sensors[6], sensors[7], sensors[8], sensors[9]);
+  sprintf(tempData, "%.2f,%.2f,%.2f,", sensors[6], sensors[7], sensors[8]);
   strcat(outputData, tempData);
 
+  sprintf(tempData, "%.2f,", sensors[9]);
+  strcat(outputData, tempData);
+  
   sprintf(tempData, "%.2f,", sensors[10]);
   strcat(outputData, tempData);
   
   sprintf(tempData, "%.2f,", sensors[11]);
-  strcat(outputData, tempData);
-  
-  sprintf(tempData, "%.2f,", sensors[12]);
   strcat(outputData, tempData);
 
   strcat(outputData, "\r\n");

@@ -12,7 +12,7 @@ public:
   bool check();
 
   void update();
-  double q0, q1, q2, q3;
+  double q1, q2, q3;
   float acc_x, acc_y, acc_z;
   float gyr_x, gyr_y, gyr_z;
 
