@@ -290,10 +290,10 @@ int sendfreq = 10;
 int sentf = 0;
 int sentfs = 0;
 
-void loop() {
-  uint64_t hertz = 111;
-  uint64_t usBetweenReadings = 1000000ULL / hertz;
+uint64_t hertz = 111;
+uint64_t usBetweenReadings = 1000000ULL / hertz;
 
+void loop() {
   if ((micros() - lastReadTime) >= usBetweenReadings) takeReading = true;
 
   //Is it time to get new data?
