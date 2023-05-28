@@ -288,6 +288,7 @@ bool takeReading = true; //Goes true when enough time has passed between reading
 
 int sendfreq = 10;
 int sentf = 0;
+int sentfs = 0;
 
 void loop() {
   uint64_t hertz = 111;
@@ -311,8 +312,9 @@ void loop() {
 
     //Print to terminal
     bool terminalOut = false;
-    if (terminalOut) Serial.print(outputData); //Print to terminal
-
+    if (terminalOut && sentfs >=sendfreq) {
+      Serial.print(outputData); //Print to terminal
+    } else sentfs++;
 
     //Record to SD
     bool sdOut = true;
