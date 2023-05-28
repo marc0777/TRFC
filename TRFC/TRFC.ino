@@ -95,6 +95,17 @@ void setIMUPower(bool status) {
   digitalWrite(PIN_IMU_POWER, status);
 }
 
+void beginIMUPower() {
+  pinMode(PIN_IMU_CHIP_SELECT, OUTPUT);
+  digitalWrite(PIN_IMU_CHIP_SELECT, HIGH); //Be sure IMU is deselected
+
+  setIMUPower(false);
+  delay(10);
+  setIMUPower(true);
+  //Allow ICM to come online. Typical is 11ms. Max is 100ms. 
+  delay(100);
+}
+
 void setQwiicPower(bool status) {
   pinMode(PIN_QWIIC_POWER, OUTPUT);
   digitalWrite(PIN_QWIIC_POWER, status);
@@ -125,7 +136,6 @@ void beginQwiic() {
  */
 bool beginSD() {
   bool success = true;
-  pinMode(PIN_MICROSD_POWER, OUTPUT);
   pinMode(PIN_MICROSD_CHIP_SELECT, OUTPUT);
   digitalWrite(PIN_MICROSD_CHIP_SELECT, HIGH); //Be sure SD is deselected
 
@@ -211,6 +221,7 @@ void setup() {
   enableCIPOpullUp();
   analogReadResolution(14); //Increase from default of 10
   beginDataLogging();
+  beginIMUPower();
   imu.begin();
 
   pres.setI2CAddress(0x76);

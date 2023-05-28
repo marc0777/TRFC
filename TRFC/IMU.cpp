@@ -84,16 +84,6 @@ ICM_20948_Status_e ICM_20948::initializeDMP() {
 
 void IMU::begin() {
   bool success = true;
-  pinMode(PIN_IMU_POWER, OUTPUT);
-  pinMode(PIN_IMU_CHIP_SELECT, OUTPUT);
-  digitalWrite(PIN_IMU_CHIP_SELECT, HIGH); //Be sure IMU is deselected
-
-  pinMode(PIN_IMU_POWER, OUTPUT);
-  digitalWrite(PIN_IMU_POWER, false);
-  delay(10);
-  digitalWrite(PIN_IMU_POWER, true);
-  //Allow ICM to come online. Typical is 11ms. Max is 100ms. 
-  delay(100);
   myICM.begin(PIN_IMU_CHIP_SELECT, SPI, 4000000); //Set IMU SPI rate to 4MHz
 
   //Give the IMU extra time to get its act together. This seems to fix the IMU-not-starting-up-cleanly-after-sleep problem...
