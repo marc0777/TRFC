@@ -135,9 +135,10 @@ void IMU::update() {
     }
 
     if ((data.header & DMP_header_bitmap_Accel) > 0) {
-      acc_x = (float)data.Raw_Accel.Data.X / 2048.f; // Extract the raw accelerometer data
-      acc_y = (float)data.Raw_Accel.Data.Y / 2048.f;
-      acc_z = (float)data.Raw_Accel.Data.Z / 2048.f;
+      // Extract the accelerometer data in g, and convert it to m/s²
+      acc_x = ((float)data.Raw_Accel.Data.X / 2048.f) * 9.81f; 
+      acc_y = ((float)data.Raw_Accel.Data.Y / 2048.f) * 9.81f;
+      acc_z = ((float)data.Raw_Accel.Data.Z / 2048.f) * 9.81f;;
     }
 
     if ( (data.header & DMP_header_bitmap_Gyro) > 0 ) {
