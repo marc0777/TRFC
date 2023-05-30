@@ -234,7 +234,7 @@ void setup() {
   pres.setPressureOverSample(4);
   pres.setFilter(3);
 
-  pres.setReferencePressure(102100.0); // set to correct value day of launch!!!
+  pres.setReferencePressure(101070.0); // set to correct value day of launch!!!
 
   setStatusLED(false); // Configuration ended, ready to go
 
